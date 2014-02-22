@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <title>Mezzy: Chat Client</title>
+        <link rel="stylesheet" media="all" href="/stylesheets/mezzy.css">
+        <script src="/javascripts/jquery-2.1.0.js"></script>
+        <script src="/javascripts/peer.js"></script>
+        <script>
+            $(function() { 
+
+                var peer = null;
+                var conn = null;
+
+                function displayMessage(data) { 
+                    consoleMessage(data);
+                };
+
+                function consoleMessage(message) { 
+                    $('#console').append(message.toString());
+                    $('#console').append("<br/>");
+                };
+
+                $("#register").click(function(e) { 
+
+                    var clientName = $('#clientName').val();
+
+                    if(clientName === "")
+                        return;
+
+                    $("#register")
+                        .addClass('disabled')
+                        .prop('disabled', true);
+
+                    peer = new Peer(clientName, { 
+                        host: 'localhost', 
+                        port: 9000
+                    });
+
+                    // Registered with server
+
+                    peer.on('open', function(id) { 
+                        $('#client-name').html("-- Registered as " + id);
+                    });
+
+                    // Registration error
+
+                    peer.on('error', function(error) { 
+                        consoleMessage("** Registration Error " + JSON.stringify(error));
+                    });
+
+                    // Remote connected
+
+                    peer.on('connection', function(remote) { 
+                        consoleMessage("-- " + remote.peer + " connected to you");
+                        console.log(remote);
+                        remote.on('data', displayMessage);
+                    });
+
+                });
+
+                $("#connect").click(function(e) { 
+
+                    var remoteName = $('#remoteName').val();
+
+                    conn = peer.connect(remoteName);
+
+                    conn.on('open', function() { 
+                        consoleMessage("-- Remote connected");
+                    });
+
+                    conn.on('error', function(error) { 
+                        consoleMessage("** Remote Error " + JSON.stringify(error));
+                    });
+
+                    conn.on('data', displayMessage);
+
+                    conn.on('close', function() { 
+                        consoleMessage("-- Remote disconnected");
+                    });
+
+                });
+
+                $("#send").click(function(e) { 
+
+                    var message = $('#message').val();
+
+                    if(conn === null) { 
+                        consoleMessage("** Not connected<br/>");
+                        return;
+                    }
+                    conn.send(message);
+                });
+
+            });
+        </script>
+    </head>
+    <body>
+        <div id="container">
+            <h1>Mezzy Client</h1>
+            <div id="client-name">
+                My Name: <input type="text" id="clientName" name="clientName" value="" />
+                <button id="register">Register</button>
+            </div>
+            <div id="remote-name">
+                Remote Name: <input type="text" id="remoteName" name="remoteName" value="" />
+                <button id="connect">Connect</button>
+            </div>
+            <div id="console">
+            </div>
+            <div id="messageArea">
+                <input type="text" id="message" name="message" value="" />
+                <button id="send">send</button>
+            </div>
+        </div>
+    </body>
+</html>
