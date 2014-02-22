@@ -10,7 +10,7 @@ Start the HTTP server to serve up client files (port 9001):
 
     node client
 
-Open browser to http://localhost:9000 from a couple of tabs. On each tab:
+Open browser to http://localhost:9001 from a couple of tabs. On each tab:
 
 *   Enter local client name and register   
 *   Enter remote client name and connect
