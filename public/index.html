@@ -13,7 +13,7 @@
                 var conn = null;
 
                 function displayMessage(data) { 
-                    consoleMessage(data);
+                    $('#console').append("< " + data.toString() + "<br/>");
                 };
 
                 function consoleMessage(message) { 
@@ -40,19 +40,19 @@
                     // Registered with server
 
                     peer.on('open', function(id) { 
-                        $('#client-name').html("-- Registered as " + id);
+                        $('#client-name').html("Registered as " + id);
                     });
 
                     // Registration error
 
                     peer.on('error', function(error) { 
-                        consoleMessage("** Registration Error " + JSON.stringify(error));
+                        consoleMessage("* Registration Error " + JSON.stringify(error));
                     });
 
                     // Remote connected
 
                     peer.on('connection', function(remote) { 
-                        consoleMessage("-- " + remote.peer + " connected to you");
+                        consoleMessage("- " + remote.peer + " connected to you");
                         console.log(remote);
                         remote.on('data', displayMessage);
                     });
@@ -66,17 +66,17 @@
                     conn = peer.connect(remoteName);
 
                     conn.on('open', function() { 
-                        consoleMessage("-- Remote connected");
+                        $('#remote-name').html("Connected to " + remoteName);
                     });
 
                     conn.on('error', function(error) { 
-                        consoleMessage("** Remote Error " + JSON.stringify(error));
+                        consoleMessage("* Remote Error " + JSON.stringify(error));
                     });
 
-                    conn.on('data', displayMessage);
+                    //conn.on('data', displayMessage);
 
                     conn.on('close', function() { 
-                        consoleMessage("-- Remote disconnected");
+                        consoleMessage("- Remote disconnected");
                     });
 
                 });
@@ -86,9 +86,14 @@
                     var message = $('#message').val();
 
                     if(conn === null) { 
-                        consoleMessage("** Not connected<br/>");
+                        consoleMessage("* Not connected<br/>");
                         return;
                     }
+
+                    consoleMessage("> " + message);
+
+                    $('#message').val("");
+
                     conn.send(message);
                 });
 
@@ -99,17 +104,17 @@
         <div id="container">
             <h1>Mezzy Client</h1>
             <div id="client-name">
-                My Name: <input type="text" id="clientName" name="clientName" value="" />
+                <label>My Name:</label><input type="text" id="clientName" name="clientName" value="" />
                 <button id="register">Register</button>
             </div>
             <div id="remote-name">
-                Remote Name: <input type="text" id="remoteName" name="remoteName" value="" />
+                <label>Remote Name:</label><input type="text" id="remoteName" name="remoteName" value="" />
                 <button id="connect">Connect</button>
             </div>
             <div id="console">
             </div>
             <div id="messageArea">
-                <input type="text" id="message" name="message" value="" />
+                <label>Message:</label><input type="text" id="message" name="message" value="" />
                 <button id="send">send</button>
             </div>
         </div>

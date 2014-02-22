@@ -1,0 +1,42 @@
+
+body {
+    font-family: courier;
+    text-align: center;
+}
+
+h1 {
+    margin: 10px;
+}
+
+label { 
+    display: inline-block;
+    width: 200px;
+    margin: 10px;
+    font-size: 20px;
+    text-align: left;
+}
+
+#console {
+    width: 800px;
+    border: 1px solid gray;
+    height: 600px;
+    overflow: scroll;
+    margin: 10px auto;
+    text-align: left;
+    padding: 5px 10px;
+}
+
+input {
+    margin: 10px;
+    font-size: 18px;
+}
+
+input[type="text"] {
+    width: 300px;
+}
+
+button { 
+    width: 100px;
+    font-size: 18px;
+    font-weight: bold;
+}
