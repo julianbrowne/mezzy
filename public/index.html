@@ -12,89 +12,174 @@
                 var peer = null;
                 var conn = null;
 
-                function displayMessage(data) { 
-                    $('#console').append("< " + data.toString() + "<br/>");
+                // UI elements map
+
+                var UI = { 
+                    console: '#console',
+                    buttons: { 
+                        join: '#join',
+                        leave: '#leave',
+                        connect: '#connect',
+                        disconnect: '#disconnect',
+                        send: '#send'
+                    },
+                    inputs: { 
+                        client: '#clientName',
+                        remote: '#remoteName',
+                        message: '#messageText'
+                    }
                 };
 
-                function consoleMessage(message) { 
-                    $('#console').append(message.toString());
-                    $('#console').append("<br/>");
+                function peerActive() { 
+                    return (peer !== null && !peer.disconnected && !peer.destroyed);
                 };
 
-                $("#register").click(function(e) { 
+                function connActive() { 
+                    return (conn !== null && conn.open);
+                };
 
-                    var clientName = $('#clientName').val();
+                function enableElement(element) { 
+                    $(element).removeClass('disabled').prop('disabled', false);
+                };
 
-                    if(clientName === "")
-                        return;
+                function disableElement(element) { 
+                    $(element).addClass('disabled').prop('disabled', true);
+                };
 
-                    $("#register")
-                        .addClass('disabled')
-                        .prop('disabled', true);
+                function displayMessage(message, options) { 
+                    var options = (options === undefined) ? {} : options;
+                    var target  = (options.target === undefined) ? UI.console : options.target;
+                    var prefix  = (options.prefix === undefined) ? '-' : options.prefix;
+                    var status  = (options.status === undefined) ? 'info' : options.status;
+                    $(UI.console).append('<span class="' + status + '">' + prefix + ' ' + message.toString() + '</span><br/>');
+                };
+
+                function warnMesg(message) { 
+                    displayMessage(message, { status: 'warn', prefix: '!' });
+                };
+
+                function errMesg(message) { 
+                    displayMessage(message, { status: 'err', prefix: '*' });
+                };
+
+                function infoMesg(message) { 
+                    displayMessage(message, { status: 'info', prefix: '-' });
+                };
+
+                function displayMessageToPeer(message) { 
+                    displayMessage(message, { status: 'local', prefix: peer.id + ':' });
+                };
+
+                function displayMessageFromPeer(peerName) { 
+                    return function(message) { 
+                        displayMessage(message, { status: 'remote', prefix: peerName + ':' });
+                    }
+                };
+
+                $(UI.buttons.join).click(function(e) { 
+
+                    var clientName = $(UI.inputs.client).val();
+                    if(clientName === "") return;
 
                     peer = new Peer(clientName, { 
-                        host: 'localhost', 
-                        port: 9000
+                        host: 'localhost',                  // host of the server.js
+                        port: 9000,                         // port of server.js
+                        debug: 3                            // 0: No logs, 1: Errors, 2: Errors & warnings, 3: All
                     });
 
                     // Registered with server
 
                     peer.on('open', function(id) { 
-                        $('#client-name').html("Registered as " + id);
+
+                        myName = id;
+                        infoMesg('registered as ' + id);
+                        disableElement(UI.buttons.join);
+                        disableElement(UI.inputs.client);
+                        enableElement(UI.buttons.leave);
+
+                        peer.on('connection', function(remote) { 
+                            infoMesg(remote.peer + " connected");
+                            console.log(remote);
+                            remote.on('data', displayMessageFromPeer(remote.peer));
+                            remote.on('close', function() { 
+                                infoMesg(remote.peer + " disconnected"); 
+                            });
+                            remote.on('error', function(error) { errMesg("remote error: " + error.type); });
+                        });
+
+                        peer.on('close', function() { 
+                            enableElement(UI.buttons.join);
+                            enableElement(UI.inputs.client);
+                            disableElement(UI.buttons.leave);
+                            infoMesg('deregistered as ' + id);
+                        });
+
                     });
 
                     // Registration error
 
                     peer.on('error', function(error) { 
-                        consoleMessage("* Registration Error " + JSON.stringify(error));
-                    });
-
-                    // Remote connected
-
-                    peer.on('connection', function(remote) { 
-                        consoleMessage("- " + remote.peer + " connected to you");
-                        console.log(remote);
-                        remote.on('data', displayMessage);
+                        enableElement(UI.buttons.join);
+                        disableElement(UI.buttons.leave);
+                        errMesg("registration error " + JSON.stringify(error));
                     });
 
                 });
 
-                $("#connect").click(function(e) { 
+                $(UI.buttons.leave).click(function(e) { 
+                    if(!peerActive())
+                        return;
+                    else
+                        peer.destroy();
+                });
 
-                    var remoteName = $('#remoteName').val();
-
+                $(UI.buttons.connect).click(function(e) { 
+                    if(!peerActive()) { 
+                        warnMesg("Not connected");
+                        return;
+                    }
+                    var remoteName = $(UI.inputs.remote).val();
                     conn = peer.connect(remoteName);
+                    conn.on('open',  function() { 
+                        disableElement(UI.buttons.connect);
+                        disableElement(UI.inputs.remote);
+                        enableElement(UI.buttons.disconnect);
+                        infoMesg('connected to ' + remoteName);
 
-                    conn.on('open', function() { 
-                        $('#remote-name').html("Connected to " + remoteName);
+                        // conn.on('data',  function() { });
+
+                        conn.on('close', function() { 
+                            enableElement(UI.buttons.connect);
+                            enableElement(UI.inputs.remote);
+                            disableElement(UI.buttons.disconnect);
+                            infoMesg('disconnected from ' + remoteName);
+                        });
+
                     });
 
                     conn.on('error', function(error) { 
-                        consoleMessage("* Remote Error " + JSON.stringify(error));
+                        errMesg("remote error: " + error.type);
                     });
-
-                    //conn.on('data', displayMessage);
-
-                    conn.on('close', function() { 
-                        consoleMessage("- Remote disconnected");
-                    });
-
                 });
 
-                $("#send").click(function(e) { 
+                $(UI.buttons.disconnect).click(function(e) { 
+                    if(!connActive() || !peerActive())
+                        return;
+                    else
+                        conn.close();
+                });
 
-                    var message = $('#message').val();
-
-                    if(conn === null) { 
-                        consoleMessage("* Not connected<br/>");
+                $(UI.buttons.send).click(function(e) { 
+                    if(!connActive()||!peerActive()) { 
+                        warnMesg("Not connected");
                         return;
                     }
-
-                    consoleMessage("> " + message);
-
-                    $('#message').val("");
-
-                    conn.send(message);
+                    else { 
+                        var message = $(UI.inputs.message).val();
+                        displayMessageToPeer(message);
+                        $(UI.inputs.message).val("");
+                        conn.send(message);
+                    }
                 });
 
             });
@@ -102,19 +187,24 @@
     </head>
     <body>
         <div id="container">
-            <h1>Mezzy Client</h1>
-            <div id="client-name">
-                <label>My Name:</label><input type="text" id="clientName" name="clientName" value="" />
-                <button id="register">Register</button>
+            <h1>Mezzy Talk</h1>
+            <div id="client">
+                <label>My Name:</label>
+                <input type="text" id="clientName" name="clientName" value="" />
+                <button id="join">join</button>
+                <button id="leave" class="disabled" disabled>leave</button>
             </div>
-            <div id="remote-name">
-                <label>Remote Name:</label><input type="text" id="remoteName" name="remoteName" value="" />
-                <button id="connect">Connect</button>
+            <div id="remote">
+                <label>Remote Name:</label>
+                <input type="text" id="remoteName" name="remoteName" value="" />
+                <button id="connect">connect</button>
+                <button id="disconnect" class="disabled" disabled>disconnect</button>
             </div>
             <div id="console">
             </div>
-            <div id="messageArea">
-                <label>Message:</label><input type="text" id="message" name="message" value="" />
+            <div id="message">
+                <label>Message:</label>
+                <input type="text" id="messageText" name="message" value="" />
                 <button id="send">send</button>
             </div>
         </div>
