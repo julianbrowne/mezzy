@@ -14,7 +14,12 @@ server.on('connection', function(client) {
             var rand = Math.floor(Math.random() * (25 - 10 + 1)) + 10;
             var message = 'hello world ' + rand;
             console.log("server: sending message: %s", message);
-            client.socket.send(JSON.stringify({ type: 'MEZZY', payload: message }));
+            try { // client might have disconnected
+                client.socket.send(JSON.stringify({ type: 'MEZZY', payload: message }));
+            }
+            catch(e) {
+                console.error(e);
+            }
         },
         interval
     );

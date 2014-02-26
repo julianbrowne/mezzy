@@ -9,9 +9,9 @@ h1 {
 
 label { 
     display: inline-block;
-    width: 150px;
+    width: 160px;
     margin: 10px;
-    font-size: 18px;
+    font-size: 16px;
     text-align: left;
 }
 
@@ -48,7 +48,7 @@ span.remote {
 video {
     border: 1px solid gray;
     margin: 10px;
-    width: 340px;
+    width: 344px;
     height: 200px;
 }
 
@@ -79,11 +79,22 @@ input[type="text"] {
 }
 
 input[type="text"].wide {
-    width: 400px;
+    width: 380px;
 }
 
 button { 
+    color: #FFFFFF;
+    background: #475c81;
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border: 1px solid #737881;
+    margin: 10px;
     width: 100px;
     font-size: 16px;
 }
 
+button.disabled { 
+    color: #7d7d7d;
+    background: #CCCDC8;
+    border: 1px solid #CCCDC8;
+}
