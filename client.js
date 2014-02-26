@@ -1,6 +1,7 @@
 
 var content = require('node-static');
 var http = require('http');
+var port = 9001;
 
 var file = new(content.Server)('public');
 
@@ -19,5 +20,6 @@ var handler = function(request, response) {
 
 var server = http.createServer(handler);
 
-server.listen(9001);
+server.listen(port);
 
+console.log('Open browser to http://127.0.0.1:' + port);

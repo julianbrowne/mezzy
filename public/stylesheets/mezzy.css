@@ -1,7 +1,6 @@
 
 body {
     font-family: courier;
-    text-align: center;
 }
 
 h1 {
@@ -46,12 +45,19 @@ span.remote {
     color: Navy;
 }
 
-#console {
-    width: 800px;
+video {
     border: 1px solid gray;
-    height: 600px;
+    margin: 10px;
+    width: 340px;
+    height: 200px;
+}
+
+#console {
+    width: 700px;
+    border: 1px solid gray;
+    height: 400px;
     overflow: scroll;
-    margin: 10px auto;
+    margin: 10px;
     text-align: left;
     padding: 5px 10px;
 }
@@ -70,6 +76,10 @@ input[type="text"] {
     width: 200px;
     text-align: right;
     padding: 2px 5px;
+}
+
+input[type="text"].wide {
+    width: 400px;
 }
 
 button { 

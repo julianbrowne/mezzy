@@ -11,16 +11,25 @@
 
                 var peer = null;
                 var conn = null;
+                var media = null;
+
+                navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
                 // UI elements map
 
                 var UI = { 
                     console: '#console',
+                    video: { 
+                        local: '#localVideo',
+                        remote: '#remoteVideo'
+                    },
                     buttons: { 
                         join: '#join',
                         leave: '#leave',
                         connect: '#connect',
                         disconnect: '#disconnect',
+                        media: '#media',
+                        close: '#close',
                         send: '#send'
                     },
                     inputs: { 
@@ -36,6 +45,10 @@
 
                 function connActive() { 
                     return (conn !== null && conn.open);
+                };
+
+                function mediaActive() { 
+                    return (media !== null && media.open);
                 };
 
                 function enableElement(element) { 
@@ -107,11 +120,35 @@
                             remote.on('error', function(error) { errMesg("remote error: " + error.type); });
                         });
 
+                        peer.on('mezzy', function(data) { 
+                            infoMesg('mezzy: ' + data);
+                        });
+
                         peer.on('close', function() { 
                             enableElement(UI.buttons.join);
                             enableElement(UI.inputs.client);
                             disableElement(UI.buttons.leave);
                             infoMesg('deregistered as ' + id);
+                        });
+
+                        peer.on('call', function(mediaConnection) { 
+                            navigator.getUserMedia(
+                                { video: true, audio: false }, 
+                                function(localStream) { 
+                                    mediaConnection.answer(localStream);
+                                    var video = $(UI.video.local);
+                                    var source = window.URL.createObjectURL(localStream);
+                                    video.attr('src', source);
+                                    mediaConnection.on('stream', function(remoteStream) { 
+                                        var video = $(UI.video.remote);
+                                        var source = window.URL.createObjectURL(remoteStream);
+                                        video.attr('src', source);
+                                    });
+                                },
+                                function(error) {
+                                    errMesg('media answer error ' + JSON.stringify(error));
+                                }
+                            );
                         });
 
                     });
@@ -134,11 +171,11 @@
                 });
 
                 $(UI.buttons.connect).click(function(e) { 
-                    if(!peerActive()) { 
-                        warnMesg("Not connected");
+                    var remoteName = $(UI.inputs.remote).val();
+                    if(!peerActive() || remoteName === '') { 
+                        warnMesg("not connected or no remote client specified");
                         return;
                     }
-                    var remoteName = $(UI.inputs.remote).val();
                     conn = peer.connect(remoteName);
                     conn.on('open',  function() { 
                         disableElement(UI.buttons.connect);
@@ -158,7 +195,7 @@
                     });
 
                     conn.on('error', function(error) { 
-                        errMesg("remote error: " + error.type);
+                        errMesg("connection error: " + error.type);
                     });
                 });
 
@@ -167,6 +204,38 @@
                         return;
                     else
                         conn.close();
+                });
+
+                $(UI.buttons.media).click(function(e) { 
+                    var remoteName = $(UI.inputs.remote).val();
+                    if(!peerActive() || remoteName === '') { 
+                        warnMesg("not connected or no remote client specified");
+                        return;
+                    }
+                    navigator.getUserMedia( { video: true, audio: false }, 
+                        function(localStream) { 
+                            media = peer.call(remoteName, localStream);
+                            var video = $(UI.video.local);
+                            var source = window.URL.createObjectURL(localStream);
+                            video.attr('src', source);
+                            window.addEventListener('loadedmetadata', function(ev) {
+                                infoMesg("video ready");
+                                // ev.srcElement.clientWidth is populated correctly
+                            }, true);
+                        },
+                        function(error) { 
+                            errMesg("error" + JSON.stringify(error));
+                        }
+                    );
+                });
+
+                $(UI.buttons.close).click(function(e) { 
+                    if(!mediaActive()||!peerActive()) { 
+                        warnMesg("Not connected");
+                        return;
+                    }
+                    else
+                        media.close();
                 });
 
                 $(UI.buttons.send).click(function(e) { 
@@ -199,12 +268,18 @@
                 <input type="text" id="remoteName" name="remoteName" value="" />
                 <button id="connect">connect</button>
                 <button id="disconnect" class="disabled" disabled>disconnect</button>
+                <button id="media">video</button>
+                <button id="close">close</button>
+            </div>
+            <div id="media">
+                <video id="localVideo" autoplay></video>
+                <video id="remoteVideo" autoplay></video>
             </div>
             <div id="console">
             </div>
             <div id="message">
                 <label>Message:</label>
-                <input type="text" id="messageText" name="message" value="" />
+                <input type="text" id="messageText" class="wide" name="message" value="" />
                 <button id="send">send</button>
             </div>
         </div>

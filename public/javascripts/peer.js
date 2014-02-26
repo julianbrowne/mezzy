@@ -593,27 +593,32 @@ var isArray = Array.isArray;
 
 
 EventEmitter.prototype.addListener = function(type, listener, scope, once) {
+
   if ('function' !== typeof listener) {
     throw new Error('addListener only takes instances of Function');
   }
   
   // To avoid recursion in the case that type == "newListeners"! Before
   // adding it to the listeners, first emit "newListeners".
+
   this.emit('newListener', type, typeof listener.listener === 'function' ?
             listener.listener : listener);
             
   if (!this._events[type]) {
     // Optimize the case of one listener. Don't need the extra array object.
     this._events[type] = listener;
-  } else if (isArray(this._events[type])) {
+  }
+  else if (isArray(this._events[type])) {
 
     // If we've already got an array, just append.
     this._events[type].push(listener);
 
-  } else {
+  }
+  else {
     // Adding the second element, need to change to array.
     this._events[type] = [this._events[type], listener];
   }
+
   return this;
 };
 
@@ -1444,19 +1449,25 @@ function Peer(id, options) {
 
   // Initialize the 'socket' (which is actually a mix of XHR streaming and
   // websockets.)
+
   var self = this;
+
   this.socket = new Socket(this.options.secure, this.options.host, this.options.port, this.options.key);
-  this.socket.on('message', function(data) {
+
+  this.socket.on('message', function(data) { 
     self._handleMessage(data);
   });
+
   this.socket.on('error', function(error) {
     self._abort('socket-error', error);
   });
+
   this.socket.on('close', function() {
     if (!self.disconnected) { // If we haven't explicitly disconnected, emit error.
       self._abort('socket-closed', 'Underlying socket is already closed.');
     }
   });
+
   //
 
   // Start the connections
@@ -1507,6 +1518,9 @@ Peer.prototype._initialize = function(id) {
 
 /** Handles messages from the server. */
 Peer.prototype._handleMessage = function(message) {
+
+  // console.log(message);
+
   var type = message.type;
   var payload = message.payload;
   var peer = message.src;
@@ -1530,6 +1544,11 @@ Peer.prototype._handleMessage = function(message) {
     case 'LEAVE': // Another peer has closed its connection to this peer.
       util.log('Received leave message from', peer);
       this._cleanupPeer(peer);
+      break;
+
+    case 'MEZZY': // proprietory message
+      console.log("got mezzy local message: " + payload);
+      this.emit('mezzy', payload);
       break;
 
     case 'EXPIRE': // The offer sent to a peer has expired without response.
@@ -2521,7 +2540,7 @@ Socket.prototype._handleStream = function(http) {
     } else {
       try {
         message = JSON.parse(message);
-      } catch(e) {
+      } catch(e) { 
         util.log('Invalid server message', message);
         return;
       }
